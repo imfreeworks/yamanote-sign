@@ -1,5 +1,14 @@
-const CACHE = "yamanote-sign-v1";
-const ASSETS = ["./", "./index.html", "./manifest.webmanifest"];
+const CACHE = "yamanote-sign-v2";
+const ASSETS = [
+  "./",
+  "./index.html",
+  "./manifest.webmanifest",
+  "./sw.js",
+  "./sounds/depart.mp3",
+  "./sounds/tokyo.mp3",
+  "./sounds/shibuya.mp3",
+  "./sounds/shinjuku.mp3"
+];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));

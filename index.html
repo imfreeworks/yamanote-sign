@@ -13,7 +13,6 @@
       --panel:#0f1722;
       --text:#e8eef6;
       --muted:#a7b3c4;
-      --line:#2a3645;
       --shadow: 0 18px 50px rgba(0,0,0,.45);
     }
     *{box-sizing:border-box}
@@ -99,6 +98,14 @@
       line-height:1.05;
       letter-spacing:.02em;
     }
+    /* 駅名のひらがな（小さめ） */
+    .kana{
+      font-size:16px;
+      color: #b9d6c7;
+      letter-spacing: .12em;
+      margin-top: -6px;
+      font-weight: 650;
+    }
     .romaji{
       color: var(--muted);
       font-weight:600;
@@ -161,17 +168,30 @@
       flex-wrap:wrap;
       gap:8px;
     }
+
+    /* pill内で2行表示できるようにする */
     .pill{
       font-size:12px;
-      padding:7px 10px;
+      padding:8px 10px;
       border-radius:999px;
       background: rgba(255,255,255,.06);
       border: 1px solid rgba(255,255,255,.10);
       color:#e9f1fb;
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+      line-height:1.1;
+      min-width: fit-content;
     }
     .pill.muted{
       color: var(--muted);
       background: rgba(255,255,255,.03);
+    }
+    /* 路線のひらがな（さらに小さめ） */
+    .line-kana{
+      font-size:10px;
+      color:#9fb7aa;
+      letter-spacing:.1em;
     }
 
     /* コントロール */
@@ -239,6 +259,7 @@
 
       <div class="stationname">
         <div class="jp" id="stationJp">東京</div>
+        <div class="kana" id="stationKana">とうきょう</div>
         <div class="romaji" id="stationRo">TOKYO</div>
       </div>
 
@@ -268,72 +289,169 @@
       </label>
     </div>
 
-    <div class="footer">オフライン対応 / ホーム画面に追加できます</div>
+    <div class="footer">オフライン対応 / ホーム画面に追加できます（音はボタン押下で再生）</div>
   </div>
 
   <script>
-    // 山手線（順番：外回り/時計回り）
+    // ===== 駅データ =====
+    // transfer は {name,kana} の配列。未設定の場合は "—"。
     const yamanote = [
-      { jp:"東京", ro:"TOKYO", transfer:["丸ノ内線","東海道新幹線","東北・北海道新幹線","上越新幹線","北陸新幹線","京葉線","中央線"] },
-      { jp:"有楽町", ro:"YURAKUCHO", transfer:["有楽町線","日比谷線（徒歩圏）"] },
-      { jp:"新橋", ro:"SHIMBASHI", transfer:["銀座線","浅草線","ゆりかもめ"] },
-      { jp:"浜松町", ro:"HAMAMATSUCHO", transfer:["東京モノレール","大江戸線（大門）"] },
-      { jp:"田町", ro:"TAMACHI", transfer:["三田線（三田）","浅草線（三田）"] },
-      { jp:"高輪ゲートウェイ", ro:"TAKANAWA GATEWAY", transfer:["京浜東北線"] },
-      { jp:"品川", ro:"SHINAGAWA", transfer:["東海道新幹線","京急線","横須賀線","京浜東北線"] },
-      { jp:"大崎", ro:"OSAKI", transfer:["りんかい線","湘南新宿ライン"] },
-      { jp:"五反田", ro:"GOTANDA", transfer:["浅草線","東急池上線"] },
-      { jp:"目黒", ro:"MEGURO", transfer:["南北線","三田線","東急目黒線"] },
-      { jp:"恵比寿", ro:"EBISU", transfer:["日比谷線"] },
-      { jp:"渋谷", ro:"SHIBUYA", transfer:["銀座線","半蔵門線","副都心線","東急東横線","田園都市線","井の頭線"] },
-      { jp:"原宿", ro:"HARAJUKU", transfer:["千代田線（明治神宮前）","副都心線（明治神宮前）"] },
-      { jp:"代々木", ro:"YOYOGI", transfer:["大江戸線","中央・総武線"] },
-      { jp:"新宿", ro:"SHINJUKU", transfer:["丸ノ内線","副都心線","都営新宿線","大江戸線","小田急線","京王線"] },
-      { jp:"新大久保", ro:"SHIN-OKUBO", transfer:["—"] },
-      { jp:"高田馬場", ro:"TAKADANOBABA", transfer:["東西線","西武新宿線"] },
-      { jp:"目白", ro:"MEJIRO", transfer:["—"] },
-      { jp:"池袋", ro:"IKEBUKURO", transfer:["丸ノ内線","有楽町線","副都心線","東武東上線","西武池袋線"] },
-      { jp:"大塚", ro:"OTSUKA", transfer:["都電荒川線"] },
-      { jp:"巣鴨", ro:"SUGAMO", transfer:["三田線"] },
-      { jp:"駒込", ro:"KOMAGOME", transfer:["南北線"] },
-      { jp:"田端", ro:"TABATA", transfer:["京浜東北線"] },
-      { jp:"西日暮里", ro:"NISHI-NIPPORI", transfer:["千代田線","日暮里・舎人ライナー"] },
-      { jp:"日暮里", ro:"NIPPORI", transfer:["京成本線","日暮里・舎人ライナー"] },
-      { jp:"鶯谷", ro:"UGUISUDANI", transfer:["—"] },
-      { jp:"上野", ro:"UENO", transfer:["銀座線","日比谷線","京成本線","東北・北海道新幹線","上越新幹線","北陸新幹線"] },
-      { jp:"御徒町", ro:"OKACHIMACHI", transfer:["大江戸線（上野御徒町）","銀座線（上野広小路）","日比谷線（仲御徒町）"] },
-      { jp:"秋葉原", ro:"AKIHABARA", transfer:["日比谷線","つくばエクスプレス","中央・総武線"] },
-      { jp:"神田", ro:"KANDA", transfer:["銀座線","中央線"] }
+      {
+        jp:"東京", kana:"とうきょう", ro:"TOKYO",
+        transfer:[
+          {name:"丸ノ内線", kana:"まるのうちせん"},
+          {name:"中央線", kana:"ちゅうおうせん"},
+          {name:"京葉線", kana:"けいようせん"},
+          {name:"東海道新幹線", kana:"とうかいどうしんかんせん"},
+          {name:"東北・北海道新幹線", kana:"とうほく・ほっかいどうしんかんせん"},
+          {name:"上越新幹線", kana:"じょうえつしんかんせん"},
+          {name:"北陸新幹線", kana:"ほくりくしんかんせん"}
+        ],
+        sound:"./sounds/tokyo.mp3" // 任意（無くてもOK）
+      },
+      { jp:"有楽町", kana:"ゆうらくちょう", ro:"YURAKUCHO", transfer:[ {name:"有楽町線", kana:"ゆうらくちょうせん"}, {name:"日比谷線（徒歩圏）", kana:"ひびやせん"} ] },
+      { jp:"新橋", kana:"しんばし", ro:"SHIMBASHI", transfer:[ {name:"銀座線", kana:"ぎんざせん"}, {name:"浅草線", kana:"あさくさせん"}, {name:"ゆりかもめ", kana:"ゆりかもめ"} ] },
+      { jp:"浜松町", kana:"はままつちょう", ro:"HAMAMATSUCHO", transfer:[ {name:"東京モノレール", kana:"とうきょうものれーる"}, {name:"大江戸線（大門）", kana:"おおえどせん（だいもん）"} ] },
+      { jp:"田町", kana:"たまち", ro:"TAMACHI", transfer:[ {name:"三田線（三田）", kana:"みたせん（みた）"}, {name:"浅草線（三田）", kana:"あさくさせん（みた）"} ] },
+      { jp:"高輪ゲートウェイ", kana:"たかなわげーとうぇい", ro:"TAKANAWA GATEWAY", transfer:[ {name:"京浜東北線", kana:"けいひんとうほくせん"} ] },
+      { jp:"品川", kana:"しながわ", ro:"SHINAGAWA", transfer:[ {name:"東海道新幹線", kana:"とうかいどうしんかんせん"}, {name:"京急線", kana:"けいきゅうせん"}, {name:"横須賀線", kana:"よこすかせん"}, {name:"京浜東北線", kana:"けいひんとうほくせん"} ] },
+      { jp:"大崎", kana:"おおさき", ro:"OSAKI", transfer:[ {name:"りんかい線", kana:"りんかいせん"}, {name:"湘南新宿ライン", kana:"しょうなんしんじゅくらいん"} ] },
+      { jp:"五反田", kana:"ごたんだ", ro:"GOTANDA", transfer:[ {name:"浅草線", kana:"あさくさせん"}, {name:"東急池上線", kana:"とうきゅういけがみせん"} ] },
+      { jp:"目黒", kana:"めぐろ", ro:"MEGURO", transfer:[ {name:"南北線", kana:"なんぼくせん"}, {name:"三田線", kana:"みたせん"}, {name:"東急目黒線", kana:"とうきゅうめぐろせん"} ] },
+      { jp:"恵比寿", kana:"えびす", ro:"EBISU", transfer:[ {name:"日比谷線", kana:"ひびやせん"} ] },
+      {
+        jp:"渋谷", kana:"しぶや", ro:"SHIBUYA",
+        transfer:[
+          {name:"銀座線", kana:"ぎんざせん"},
+          {name:"半蔵門線", kana:"はんぞうもんせん"},
+          {name:"副都心線", kana:"ふくとしんせん"},
+          {name:"東急東横線", kana:"とうきゅうとうよこせん"},
+          {name:"田園都市線", kana:"でんえんとしせん"},
+          {name:"井の頭線", kana:"いのかしらせん"}
+        ],
+        sound:"./sounds/shibuya.mp3" // 任意（無くてもOK）
+      },
+      { jp:"原宿", kana:"はらじゅく", ro:"HARAJUKU", transfer:[ {name:"千代田線（明治神宮前）", kana:"ちよだせん（めいじじんぐうまえ）"}, {name:"副都心線（明治神宮前）", kana:"ふくとしんせん（めいじじんぐうまえ）"} ] },
+      { jp:"代々木", kana:"よよぎ", ro:"YOYOGI", transfer:[ {name:"大江戸線", kana:"おおえどせん"}, {name:"中央・総武線", kana:"ちゅうおう・そうぶせん"} ] },
+      {
+        jp:"新宿", kana:"しんじゅく", ro:"SHINJUKU",
+        transfer:[
+          {name:"丸ノ内線", kana:"まるのうちせん"},
+          {name:"副都心線", kana:"ふくとしんせん"},
+          {name:"都営新宿線", kana:"とえいしんじゅくせん"},
+          {name:"大江戸線", kana:"おおえどせん"},
+          {name:"小田急線", kana:"おだきゅうせん"},
+          {name:"京王線", kana:"けいおうせん"}
+        ],
+        sound:"./sounds/shinjuku.mp3" // 任意（無くてもOK）
+      },
+      { jp:"新大久保", kana:"しんおおくぼ", ro:"SHIN-OKUBO", transfer:["—"] },
+      { jp:"高田馬場", kana:"たかだのばば", ro:"TAKADANOBABA", transfer:[ {name:"東西線", kana:"とうざいせん"}, {name:"西武新宿線", kana:"せいぶしんじゅくせん"} ] },
+      { jp:"目白", kana:"めじろ", ro:"MEJIRO", transfer:["—"] },
+      { jp:"池袋", kana:"いけぶくろ", ro:"IKEBUKURO", transfer:[ {name:"丸ノ内線", kana:"まるのうちせん"}, {name:"有楽町線", kana:"ゆうらくちょうせん"}, {name:"副都心線", kana:"ふくとしんせん"}, {name:"東武東上線", kana:"とうぶとうじょうせん"}, {name:"西武池袋線", kana:"せいぶいけぶくろせん"} ] },
+      { jp:"大塚", kana:"おおつか", ro:"OTSUKA", transfer:[ {name:"都電荒川線", kana:"とでんあらかわせん"} ] },
+      { jp:"巣鴨", kana:"すがも", ro:"SUGAMO", transfer:[ {name:"三田線", kana:"みたせん"} ] },
+      { jp:"駒込", kana:"こまごめ", ro:"KOMAGOME", transfer:[ {name:"南北線", kana:"なんぼくせん"} ] },
+      { jp:"田端", kana:"たばた", ro:"TABATA", transfer:[ {name:"京浜東北線", kana:"けいひんとうほくせん"} ] },
+      { jp:"西日暮里", kana:"にしにっぽり", ro:"NISHI-NIPPORI", transfer:[ {name:"千代田線", kana:"ちよだせん"}, {name:"日暮里・舎人ライナー", kana:"にっぽり・とねりらいなー"} ] },
+      { jp:"日暮里", kana:"にっぽり", ro:"NIPPORI", transfer:[ {name:"京成本線", kana:"けいせいほんせん"}, {name:"日暮里・舎人ライナー", kana:"にっぽり・とねりらいなー"} ] },
+      { jp:"鶯谷", kana:"うぐいすだに", ro:"UGUISUDANI", transfer:["—"] },
+      { jp:"上野", kana:"うえの", ro:"UENO", transfer:[ {name:"銀座線", kana:"ぎんざせん"}, {name:"日比谷線", kana:"ひびやせん"}, {name:"京成本線", kana:"けいせいほんせん"}, {name:"東北・北海道新幹線", kana:"とうほく・ほっかいどうしんかんせん"}, {name:"上越新幹線", kana:"じょうえつしんかんせん"}, {name:"北陸新幹線", kana:"ほくりくしんかんせん"} ] },
+      { jp:"御徒町", kana:"おかちまち", ro:"OKACHIMACHI", transfer:[ {name:"大江戸線（上野御徒町）", kana:"おおえどせん（うえのおかちまち）"}, {name:"銀座線（上野広小路）", kana:"ぎんざせん（うえのひろこうじ）"}, {name:"日比谷線（仲御徒町）", kana:"ひびやせん（なかおかちまち）"} ] },
+      { jp:"秋葉原", kana:"あきはばら", ro:"AKIHABARA", transfer:[ {name:"日比谷線", kana:"ひびやせん"}, {name:"つくばエクスプレス", kana:"つくばえくすぷれす"}, {name:"中央・総武線", kana:"ちゅうおう・そうぶせん"} ] },
+      { jp:"神田", kana:"かんだ", ro:"KANDA", transfer:[ {name:"銀座線", kana:"ぎんざせん"}, {name:"中央線", kana:"ちゅうおうせん"} ] }
     ];
 
     let idx = 0;
-    let clockwise = true; // 外回り
+    let clockwise = true; // 外回り（時計回り）
 
     const elJp = document.getElementById("stationJp");
+    const elKana = document.getElementById("stationKana");
     const elRo = document.getElementById("stationRo");
     const elNext = document.getElementById("nextStation");
     const elLines = document.getElementById("transferLines");
     const badge = document.getElementById("directionBadge");
 
-    function normTransfer(list){
-      if(!list || list.length===0) return ["—"];
-      return list.map(x => (x && x.trim()) ? x : "—");
+    // ====== A: 汎用音（必須）======
+    const genericSound = new Audio("./sounds/depart.mp3");
+    genericSound.volume = 0.6;
+
+    // ====== B: 駅別音（任意）======
+    const soundCache = new Map();
+    function getSound(url){
+      if(!url) return null;
+      if(soundCache.has(url)) return soundCache.get(url);
+      const a = new Audio(url);
+      a.volume = 0.6;
+      soundCache.set(url, a);
+      return a;
+    }
+
+    function playDepartSound(){
+      const cur = yamanote[idx];
+      const stationAudio = cur.sound ? getSound(cur.sound) : null;
+      const audio = stationAudio || genericSound;
+
+      try{
+        audio.currentTime = 0;
+        // iOSはユーザー操作がトリガーでないと弾く場合あり → catchで握りつぶし
+        audio.play().catch(()=>{});
+      }catch(_e){}
+    }
+
+    function isDash(x){
+      return x === "—" || x === "-" || x === "ー";
+    }
+
+    function normalizeTransfer(list){
+      if(!list || list.length === 0) return ["—"];
+      return list;
     }
 
     function render(){
       const cur = yamanote[idx];
+
       elJp.textContent = cur.jp;
+      elKana.textContent = cur.kana || "";
       elRo.textContent = cur.ro;
 
-      const nextIdx = clockwise ? (idx + 1) % yamanote.length : (idx - 1 + yamanote.length) % yamanote.length;
+      const nextIdx = clockwise
+        ? (idx + 1) % yamanote.length
+        : (idx - 1 + yamanote.length) % yamanote.length;
       elNext.textContent = yamanote[nextIdx].jp;
 
+      // 乗り換え表示
       elLines.innerHTML = "";
-      const lines = normTransfer(cur.transfer);
-      lines.forEach(name => {
+      const lines = normalizeTransfer(cur.transfer);
+
+      lines.forEach(line => {
         const span = document.createElement("span");
-        span.className = "pill" + (name === "—" ? " muted" : "");
-        span.textContent = name;
+
+        // 旧形式（"—" など文字列）も許容
+        if(typeof line === "string"){
+          span.className = "pill" + (isDash(line) ? " muted" : "");
+          span.textContent = line;
+          elLines.appendChild(span);
+          return;
+        }
+
+        // {name,kana} 形式
+        const name = (line && line.name) ? line.name : "—";
+        const kana = (line && line.kana) ? line.kana : "";
+        span.className = "pill" + (isDash(name) ? " muted" : "");
+
+        const top = document.createElement("div");
+        top.textContent = name;
+
+        span.appendChild(top);
+
+        if(kana && !isDash(name)){
+          const sub = document.createElement("div");
+          sub.className = "line-kana";
+          sub.textContent = kana;
+          span.appendChild(sub);
+        }
+
         elLines.appendChild(span);
       });
 
@@ -342,21 +460,30 @@
     }
 
     function next(){
-      idx = clockwise ? (idx + 1) % yamanote.length : (idx - 1 + yamanote.length) % yamanote.length;
+      // 音は必ずユーザー操作（クリック）に紐づけて鳴らす
+      playDepartSound();
+
+      idx = clockwise
+        ? (idx + 1) % yamanote.length
+        : (idx - 1 + yamanote.length) % yamanote.length;
+
       render();
     }
 
     function random(){
+      playDepartSound();
+
       let n = Math.floor(Math.random() * yamanote.length);
       if (n === idx) n = (n + 1) % yamanote.length;
       idx = n;
+
       render();
     }
 
     document.getElementById("nextBtn").addEventListener("click", next);
     document.getElementById("randomBtn").addEventListener("click", random);
     document.getElementById("dirToggle").addEventListener("change", (e)=>{
-      // チェックON=内回り、OFF=外回り（好みで逆でもOK）
+      // チェックON=内回り、OFF=外回り
       clockwise = !e.target.checked;
       render();
     });
