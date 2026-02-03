@@ -1,0 +1,15 @@
+{
+  "name": "山手線 駅看板",
+  "short_name": "駅看板",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0b0f14",
+  "theme_color": "#1a8f4b",
+  "icons": [
+    {
+      "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAFUlEQVR4nO3BMQEAAADCoPVPbQ0PoAAAAAAAAAAAgJ8GqQAAAVkz2vQAAAAASUVORK5CYII=",
+      "sizes": "64x64",
+      "type": "image/png"
+    }
+  ]
+}

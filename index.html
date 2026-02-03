@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#1a8f4b" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <title>山手線 駅看板 PWA</title>
+  <style>
+    :root{
+      --jr-green:#1a8f4b;
+      --bg:#0b0f14;
+      --panel:#0f1722;
+      --text:#e8eef6;
+      --muted:#a7b3c4;
+      --line:#2a3645;
+      --shadow: 0 18px 50px rgba(0,0,0,.45);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100svh;
+      background: radial-gradient(1200px 700px at 50% -10%, #19334a 0%, var(--bg) 60%);
+      color:var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans JP", "Yu Gothic", sans-serif;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+    }
+    .app{
+      width:min(520px, 100%);
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+
+    /* 駅看板 */
+    .sign{
+      background: linear-gradient(180deg, #0f1c2a 0%, var(--panel) 100%);
+      border: 1px solid #1d2a3a;
+      border-radius: 18px;
+      padding: 16px 16px 14px;
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      position:relative;
+    }
+    .sign::before{
+      content:"";
+      position:absolute; inset:-1px;
+      border-radius:18px;
+      background: linear-gradient(90deg, rgba(26,143,75,.35), rgba(26,143,75,0));
+      pointer-events:none;
+      opacity:.7;
+    }
+
+    .jrbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:10px;
+      position:relative;
+      z-index:1;
+    }
+    .jrlogo{
+      display:flex; align-items:center; gap:8px;
+      font-weight:700;
+      letter-spacing:.02em;
+      color:#dff6ea;
+    }
+    .dot{
+      width:10px; height:10px; border-radius:999px;
+      background: var(--jr-green);
+      box-shadow: 0 0 0 3px rgba(26,143,75,.18);
+    }
+    .badge{
+      font-size:12px;
+      color: #d7ffe6;
+      background: rgba(26,143,75,.18);
+      border: 1px solid rgba(26,143,75,.35);
+      padding:6px 10px;
+      border-radius: 999px;
+      white-space:nowrap;
+    }
+
+    .stationname{
+      position:relative;
+      z-index:1;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      padding: 6px 2px 10px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    .jp{
+      font-size:44px;
+      font-weight:800;
+      line-height:1.05;
+      letter-spacing:.02em;
+    }
+    .romaji{
+      color: var(--muted);
+      font-weight:600;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      font-size:14px;
+    }
+
+    .linebar{
+      position:relative;
+      z-index:1;
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding-top:12px;
+    }
+    .linechip{
+      display:flex; align-items:center; gap:8px;
+      padding:8px 10px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      font-weight:700;
+      white-space:nowrap;
+    }
+    .ring{
+      width:14px; height:14px; border-radius:999px;
+      border: 3px solid var(--jr-green);
+      box-shadow: 0 0 0 3px rgba(26,143,75,.12);
+    }
+    .nextbox{
+      margin-left:auto;
+      text-align:right;
+    }
+    .nextlabel{
+      font-size:11px; color: var(--muted);
+    }
+    .nextstation{
+      font-weight:800;
+      font-size:15px;
+      margin-top:2px;
+    }
+
+    /* 乗り換え案内 */
+    .transfer{
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 14px;
+      padding: 12px 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.25);
+    }
+    .transfer h2{
+      margin:0 0 10px;
+      font-size:13px;
+      color:#d8e3f2;
+      letter-spacing:.06em;
+    }
+    .lines{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+    .pill{
+      font-size:12px;
+      padding:7px 10px;
+      border-radius:999px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.10);
+      color:#e9f1fb;
+    }
+    .pill.muted{
+      color: var(--muted);
+      background: rgba(255,255,255,.03);
+    }
+
+    /* コントロール */
+    .controls{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .btnrow{
+      display:flex;
+      gap:10px;
+      flex: 1 1 auto;
+    }
+    button{
+      appearance:none;
+      border:none;
+      border-radius:14px;
+      padding:12px 14px;
+      font-weight:800;
+      color:#07110b;
+      background: linear-gradient(180deg, #46d686 0%, #1a8f4b 100%);
+      box-shadow: 0 14px 35px rgba(26,143,75,.25);
+      cursor:pointer;
+      flex: 1 1 120px;
+    }
+    button.secondary{
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.12);
+      color: var(--text);
+      box-shadow:none;
+      font-weight:750;
+    }
+    button:active{ transform: translateY(1px); }
+
+    .toggle{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      padding:10px 12px;
+      border-radius:14px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.10);
+      color: var(--muted);
+      flex: 0 0 auto;
+      user-select:none;
+    }
+    .toggle input{ width:18px; height:18px; }
+    .footer{
+      color: rgba(255,255,255,.35);
+      font-size:12px;
+      text-align:center;
+      padding-top:4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="sign" role="img" aria-label="駅の看板">
+      <div class="jrbar">
+        <div class="jrlogo"><span class="dot"></span> JR EAST</div>
+        <div class="badge" id="directionBadge">外回り（時計回り）</div>
+      </div>
+
+      <div class="stationname">
+        <div class="jp" id="stationJp">東京</div>
+        <div class="romaji" id="stationRo">TOKYO</div>
+      </div>
+
+      <div class="linebar">
+        <div class="linechip"><span class="ring"></span> 山手線</div>
+        <div class="nextbox">
+          <div class="nextlabel">Next</div>
+          <div class="nextstation" id="nextStation">有楽町</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="transfer">
+      <h2>乗り換え案内</h2>
+      <div class="lines" id="transferLines"></div>
+    </div>
+
+    <div class="controls">
+      <div class="btnrow">
+        <button id="nextBtn">次の駅</button>
+        <button class="secondary" id="randomBtn">ランダム</button>
+      </div>
+
+      <label class="toggle" title="進行方向を切り替え">
+        <input type="checkbox" id="dirToggle" />
+        <span id="dirText">外回り</span>
+      </label>
+    </div>
+
+    <div class="footer">オフライン対応 / ホーム画面に追加できます</div>
+  </div>
+
+  <script>
+    // 山手線（順番：外回り/時計回り）
+    const yamanote = [
+      { jp:"東京", ro:"TOKYO", transfer:["丸ノ内線","東海道新幹線","東北・北海道新幹線","上越新幹線","北陸新幹線","京葉線","中央線"] },
+      { jp:"有楽町", ro:"YURAKUCHO", transfer:["有楽町線","日比谷線（徒歩圏）"] },
+      { jp:"新橋", ro:"SHIMBASHI", transfer:["銀座線","浅草線","ゆりかもめ"] },
+      { jp:"浜松町", ro:"HAMAMATSUCHO", transfer:["東京モノレール","大江戸線（大門）"] },
+      { jp:"田町", ro:"TAMACHI", transfer:["三田線（三田）","浅草線（三田）"] },
+      { jp:"高輪ゲートウェイ", ro:"TAKANAWA GATEWAY", transfer:["京浜東北線"] },
+      { jp:"品川", ro:"SHINAGAWA", transfer:["東海道新幹線","京急線","横須賀線","京浜東北線"] },
+      { jp:"大崎", ro:"OSAKI", transfer:["りんかい線","湘南新宿ライン"] },
+      { jp:"五反田", ro:"GOTANDA", transfer:["浅草線","東急池上線"] },
+      { jp:"目黒", ro:"MEGURO", transfer:["南北線","三田線","東急目黒線"] },
+      { jp:"恵比寿", ro:"EBISU", transfer:["日比谷線"] },
+      { jp:"渋谷", ro:"SHIBUYA", transfer:["銀座線","半蔵門線","副都心線","東急東横線","田園都市線","井の頭線"] },
+      { jp:"原宿", ro:"HARAJUKU", transfer:["千代田線（明治神宮前）","副都心線（明治神宮前）"] },
+      { jp:"代々木", ro:"YOYOGI", transfer:["大江戸線","中央・総武線"] },
+      { jp:"新宿", ro:"SHINJUKU", transfer:["丸ノ内線","副都心線","都営新宿線","大江戸線","小田急線","京王線"] },
+      { jp:"新大久保", ro:"SHIN-OKUBO", transfer:["—"] },
+      { jp:"高田馬場", ro:"TAKADANOBABA", transfer:["東西線","西武新宿線"] },
+      { jp:"目白", ro:"MEJIRO", transfer:["—"] },
+      { jp:"池袋", ro:"IKEBUKURO", transfer:["丸ノ内線","有楽町線","副都心線","東武東上線","西武池袋線"] },
+      { jp:"大塚", ro:"OTSUKA", transfer:["都電荒川線"] },
+      { jp:"巣鴨", ro:"SUGAMO", transfer:["三田線"] },
+      { jp:"駒込", ro:"KOMAGOME", transfer:["南北線"] },
+      { jp:"田端", ro:"TABATA", transfer:["京浜東北線"] },
+      { jp:"西日暮里", ro:"NISHI-NIPPORI", transfer:["千代田線","日暮里・舎人ライナー"] },
+      { jp:"日暮里", ro:"NIPPORI", transfer:["京成本線","日暮里・舎人ライナー"] },
+      { jp:"鶯谷", ro:"UGUISUDANI", transfer:["—"] },
+      { jp:"上野", ro:"UENO", transfer:["銀座線","日比谷線","京成本線","東北・北海道新幹線","上越新幹線","北陸新幹線"] },
+      { jp:"御徒町", ro:"OKACHIMACHI", transfer:["大江戸線（上野御徒町）","銀座線（上野広小路）","日比谷線（仲御徒町）"] },
+      { jp:"秋葉原", ro:"AKIHABARA", transfer:["日比谷線","つくばエクスプレス","中央・総武線"] },
+      { jp:"神田", ro:"KANDA", transfer:["銀座線","中央線"] }
+    ];
+
+    let idx = 0;
+    let clockwise = true; // 外回り
+
+    const elJp = document.getElementById("stationJp");
+    const elRo = document.getElementById("stationRo");
+    const elNext = document.getElementById("nextStation");
+    const elLines = document.getElementById("transferLines");
+    const badge = document.getElementById("directionBadge");
+
+    function normTransfer(list){
+      if(!list || list.length===0) return ["—"];
+      return list.map(x => (x && x.trim()) ? x : "—");
+    }
+
+    function render(){
+      const cur = yamanote[idx];
+      elJp.textContent = cur.jp;
+      elRo.textContent = cur.ro;
+
+      const nextIdx = clockwise ? (idx + 1) % yamanote.length : (idx - 1 + yamanote.length) % yamanote.length;
+      elNext.textContent = yamanote[nextIdx].jp;
+
+      elLines.innerHTML = "";
+      const lines = normTransfer(cur.transfer);
+      lines.forEach(name => {
+        const span = document.createElement("span");
+        span.className = "pill" + (name === "—" ? " muted" : "");
+        span.textContent = name;
+        elLines.appendChild(span);
+      });
+
+      badge.textContent = clockwise ? "外回り（時計回り）" : "内回り（反時計回り）";
+      document.getElementById("dirText").textContent = clockwise ? "外回り" : "内回り";
+    }
+
+    function next(){
+      idx = clockwise ? (idx + 1) % yamanote.length : (idx - 1 + yamanote.length) % yamanote.length;
+      render();
+    }
+
+    function random(){
+      let n = Math.floor(Math.random() * yamanote.length);
+      if (n === idx) n = (n + 1) % yamanote.length;
+      idx = n;
+      render();
+    }
+
+    document.getElementById("nextBtn").addEventListener("click", next);
+    document.getElementById("randomBtn").addEventListener("click", random);
+    document.getElementById("dirToggle").addEventListener("change", (e)=>{
+      // チェックON=内回り、OFF=外回り（好みで逆でもOK）
+      clockwise = !e.target.checked;
+      render();
+    });
+
+    // PWA: Service Worker
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js"));
+    }
+
+    render();
+  </script>
+</body>
+</html>
